@@ -36,7 +36,7 @@ def check_renfe_date():
 
     session = requests.Session()
     estaciones = session.post('https://venta.renfe.com/vol/dwr/call/plaincall/estacionesManager.getEstacionesIntAuto.dwr', data=estaciones_payload, headers=headers).text
-    # Regex to extract real JSON
+    # Regex to extract real JSON => ({([a-zEU]+:"[0-9a-zA-Z \\\-,]+",?|[a-zEU]+:[nulfasetr]+,?)+})
     estaciones = json.loads(estaciones)
     
     session.get(urlbase)
