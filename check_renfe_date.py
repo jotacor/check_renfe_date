@@ -5,6 +5,7 @@
 from bs4 import BeautifulSoup as bs
 import json
 import ConfigParser
+import re
 import requests
 
 Config = ConfigParser.ConfigParser()
@@ -34,7 +35,7 @@ def check_renfe_date():
     }
 
     session = requests.Session()
-    estaciones = session.post('https://venta.renfe.com/vol/dwr/call/plaincall/estacionesManager.getEstacionesIntAuto.dwr', data=estaciones_payload, headers=headers) .text
+    estaciones = session.post('https://venta.renfe.com/vol/dwr/call/plaincall/estacionesManager.getEstacionesIntAuto.dwr', data=estaciones_payload, headers=headers).text
     # Regex to extract real JSON
     estaciones = json.loads(estaciones)
     
