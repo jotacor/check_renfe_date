@@ -16,11 +16,10 @@ def check_renfe_date():
     url = 'https://venta.renfe.com/vol/buscarTren.do'
     origin = Config.get('renfe', 'origin')
     dest = Config.get('renfe', 'dest')
-    date = Config.get('renfe', 'date')
-    script_sessionid = ''
+    date = Config.get('renfe', 'date').replace('-', '%2F')
 
     estaciones_payload = "callCount=1&windowName=&c0-scriptName=estacionesManager&c0-methodName=getEstacionesIntAuto&c0-id=0&batchId=1&instanceId=0&page=%2Fvol%2Findex.do&scriptSessionId=o*ygDPpho6ORWkCO1ve8EDGao1l/3ocIo1l-VrlGaOSP6"
-    payload = "cdgoOrigen=0071%2C03216%2C03216&cdgoDestino=0071%2C51003%2C51003&tipoBusqueda=autocomplete&desOrigen=Valencia+Joaquin+Sorolla&desDestino=Sevilla-Santa+Justa&ninos=0&currenLocation=menuBusqueda&operation=&grupos=false&tipoOperacion=IND&empresas=false&getTarifasSesion=false&adultos=1&actTipoViajero=true&IdOrigen=Valencia+Joaquin+Sorolla&IdDestino=Sevilla-Santa+Justa&FechaIdaSel=29%2F09%2F2015&HoraIdaSel=00%3A00&FechaVueltaSel=&HoraVueltaSel=00%3A00&adultos_=1&ninos_=0&ninosMenores=0&codPromocional=&txtoUsuario=&txtoPass="
+    payload = "cdgoOrigen=%s&cdgoDestino=%s&tipoBusqueda=autocomplete&desOrigen=%s&desDestino=%s&ninos=0&currenLocation=menuBusqueda&operation=&grupos=false&tipoOperacion=IND&empresas=false&getTarifasSesion=false&adultos=1&actTipoViajero=true&IdOrigen=%s&IdDestino=%s&FechaIdaSel=%s&HoraIdaSel=00%%3A00&FechaVueltaSel=&HoraVueltaSel=00%%3A00&adultos_=1&ninos_=0&ninosMenores=0&codPromocional=&txtoUsuario=&txtoPass="
 
     headers = {
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8', 
@@ -36,20 +35,33 @@ def check_renfe_date():
 
     session = requests.Session()
     estaciones = session.post('https://venta.renfe.com/vol/dwr/call/plaincall/estacionesManager.getEstacionesIntAuto.dwr', data=estaciones_payload, headers=headers).text
-    # Regex to extract real JSON => ({([a-zEU]+:"[0-9a-zA-Z \\\-,]+",?|[a-zEU]+:[nulfasetr]+,?)+})
-    estaciones = json.loads(estaciones)
-    
+    tuplas = re.findall('c:"([0-9nul]+,[0-9nul]+,[0-9nul]+)"|,d:"([A-z \(\*\)\.\'/\-0-9]+)"', estaciones)
+    station_codes = dict()
+    for tupla in tuplas:
+        if tupla[0].count('') > 1:
+            has_code = True
+            code = tupla[0].encode('utf-8').replace(',', '%2C')
+            continue
+        elif has_code:
+            name = tupla[1].encode('utf-8').replace('\u00F1', 'ñ')
+        station_codes.update({name:code})
+        has_code = False
+
     session.get(urlbase)
-    
+    if origin in station_codes and dest in station_codes:
+        payload = payload % (station_codes[origin], station_codes[dest], origin.replace(' ', '+'), dest.replace(' ', '+'), origin.replace(' ', '+'), dest.replace(' ', '+'), date)
+    else:
+        print "Almost one station doesn't exists."
     response = session.post(url, data=payload, headers=headers).text
     if "Se ha producido un error" in response:
         print response
         print "Error"
     elif "AVE" in response:
         res = bs(response, 'html.parser')
-        print res
+        tabla = '<meta charset="UTF-8">' + res.html.body.table
         print "Buy your ticket"
 
+    #Send mail with the table
 
 if __name__ == "__main__":
     check_renfe_date()
