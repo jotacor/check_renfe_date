@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# State: alpha
+# Author: https://github.com/jotacor
+# State: RC 1.0
 
 from bs4 import BeautifulSoup as bs
 import ConfigParser
@@ -18,6 +19,7 @@ def check_renfe_date():
     dest = Config.get('renfe', 'dest')
     date = Config.get('renfe', 'date')
     mandrill_key = Config.get('renfe', 'mandrill_key')
+    email_destination = Config.get('renfe', 'email_destination')
     
     estaciones_payload = "callCount=1&windowName=&c0-scriptName=estacionesManager&c0-methodName=getEstacionesIntAuto&c0-id=0&batchId=1&instanceId=0&page=%2Fvol%2Findex.do&scriptSessionId=o*ygDPpho6ORWkCO1ve8EDGao1l/3ocIo1l-VrlGaOSP6"
     payload = "cdgoOrigen=%s&cdgoDestino=%s&tipoBusqueda=autocomplete&desOrigen=%s&desDestino=%s&ninos=0&currenLocation=menuBusqueda&operation=&grupos=false&tipoOperacion=IND&empresas=false&getTarifasSesion=false&adultos=1&actTipoViajero=true&IdOrigen=%s&IdDestino=%s&FechaIdaSel=%s&HoraIdaSel=00%%3A00&FechaVueltaSel=&HoraVueltaSel=00%%3A00&adultos_=1&ninos_=0&ninosMenores=0&codPromocional=&txtoUsuario=&txtoPass="
@@ -67,8 +69,7 @@ def check_renfe_date():
                        'subject': 'Train from %s to %s on date %s available.' % (origin, dest, date),
                        'from_email': 'jotacor@jotacor.com',
                        'from_name': 'Check Renfe Date',
-                       'to': [{ 'email': 'javi.corbin@gmail.com',
-                                 'name': 'Javi Corbin',
+                       'to': [{ 'email': email_destination,
                                  'type': 'to'}],
                        }
             result = mandrill_client.messages.send(message=message, async=False, ip_pool='', send_at='')
