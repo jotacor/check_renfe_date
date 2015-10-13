@@ -16,7 +16,7 @@ def check_renfe_date():
     url = 'https://venta.renfe.com/vol/buscarTren.do'
     origin = Config.get('renfe', 'origin')
     dest = Config.get('renfe', 'dest')
-    date = Config.get('renfe', 'date').replace('-', '%2F')
+    date = Config.get('renfe', 'date')
     mandrill_key = Config.get('renfe', 'mandrill_key')
     
     estaciones_payload = "callCount=1&windowName=&c0-scriptName=estacionesManager&c0-methodName=getEstacionesIntAuto&c0-id=0&batchId=1&instanceId=0&page=%2Fvol%2Findex.do&scriptSessionId=o*ygDPpho6ORWkCO1ve8EDGao1l/3ocIo1l-VrlGaOSP6"
@@ -50,7 +50,7 @@ def check_renfe_date():
 
     session.get(urlbase)
     if origin in station_codes and dest in station_codes:
-        payload = payload % (station_codes[origin], station_codes[dest], origin.replace(' ', '+'), dest.replace(' ', '+'), origin.replace(' ', '+'), dest.replace(' ', '+'), date)
+        payload = payload % (station_codes[origin], station_codes[dest], origin.replace(' ', '+'), dest.replace(' ', '+'), origin.replace(' ', '+'), dest.replace(' ', '+'), date.replace('-', '%2F'))
     else:
         print "Almost one station doesn't exists."
     response = session.post(url, data=payload, headers=headers).text
@@ -59,11 +59,25 @@ def check_renfe_date():
         print "Error"
     elif "AVE" in response:
         res = bs(response, 'html.parser')
-        tabla = '<meta charset="UTF-8">' + res.html.body.table
-        mandrill_client = mandrill.Mandrill(mandrill_key)
-        print "Buy your ticket"
+        table = '<meta charset="UTF-8">' + str(res.html.body.table)
+        try:
+            mandrill_client = mandrill.Mandrill(mandrill_key)
+            message = {
+                       'html': table,
+                       'subject': 'Train from %s to %s on date %s available.' % (origin, dest, date),
+                       'from_email': 'jotacor@jotacor.com',
+                       'from_name': 'Check Renfe Date',
+                       'to': [{ 'email': 'javi.corbin@gmail.com',
+                                 'name': 'Javi Corbin',
+                                 'type': 'to'}],
+                       }
+            result = mandrill_client.messages.send(message=message, async=False, ip_pool='', send_at='')
+        except mandrill.Error, e:
+            # Mandrill errors are thrown as exceptions
+            print 'A mandrill error occurred: %s - %s' % (e.__class__, e)
+            raise
 
-    #Send mail with the table
+        print result
 
 if __name__ == "__main__":
     check_renfe_date()
